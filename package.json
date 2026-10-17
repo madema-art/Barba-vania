@@ -1,0 +1,11 @@
+{
+  "name": "barba-vania",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Barba-vania: a dark sword-and-sorcery Metroidvania. Chapter One: The Hollow Dunes.",
+  "scripts": {
+    "test": "node tests/level-check.js",
+    "test:browser": "node tests/browser-smoke.js"
+  },
+  "license": "UNLICENSED"
+}

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Barba-vania: The Hollow Dunes</title>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: #000;
+      overflow: hidden;
+    }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas {
+      display: block;
+      width: min(100vw, calc(100vh * 16 / 9));
+      height: auto;
+      aspect-ratio: 16 / 9;
+      image-rendering: auto;
+      background: #05030a;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" width="640" height="360" aria-label="Barba-vania game screen"></canvas>
+
+  <script src="js/util.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/fx.js"></script>
+  <script src="js/art.js"></script>
+  <script src="js/level-data.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/entities.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/boss.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
