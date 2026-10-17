@@ -6,6 +6,19 @@ The barbarian uses only his body and his sword. The alien desert at night is pai
 
 ## Running it
 
+On Windows, double-click `PLAY BARBA-VANIA.bat`. You can copy this file to
+your desktop; it always installs and opens the game at `D:\Barba-vania`,
+regardless of where the launcher is stored or which directory is current.
+Install [Git for Windows](https://git-scm.com/download/win) first and make
+sure drive D: is available. The first run needs an internet connection.
+
+The launcher uses branch `claude/magical-hopper-7npp9w`. Later runs fetch
+that branch and update only a clean checkout that can fast-forward. Local
+changes, local commits, unexpected repositories, and other branches are
+left untouched. If GitHub is unavailable or an update is unsafe, it warns
+you and opens the existing `index.html` in your default browser. The command
+window stays open until you press a key so you can read the result.
+
 No build step. Open `index.html` in a browser, or serve the folder:
 
 ```sh
