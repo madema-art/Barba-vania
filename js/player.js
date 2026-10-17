@@ -1,12 +1,16 @@
-// The barbarian: run, jump, sword combo, air and down-thrust attacks, hurt and death.
+// The barbarian: run, jump, sword combo, air and down-thrust attacks, block, crawl and duck,
+// hurt and death.
 (function () {
   const T = BV.TILE;
   const RUN_SPEED = 230;
+  const CRAWL_SPEED = 72;
+  const BLOCK_SPEED = 0.3;   // fraction of run speed while holding block
   const JUMP_V = -660;
   const JUMP_CUT_V = -340;
   const COYOTE = 0.1;
   const JUMP_BUFFER = 0.12;
   const COMBO_WINDOW = 0.45;
+  const DUCK_TAP = 0.5;      // seconds a single tap of duck keeps the barbarian low
 
   // Sword moves. hit = [start, end] seconds of the active frames. top/h are relative to the body top.
   const MOVES = {
@@ -43,17 +47,21 @@
       this.moveT = 0;
       this.hitSet = null;
       this.crouching = false;
+      this.blocking = false;
+      this.blockT = 0;
+      this.duckT = 0;
+      this.sneaking = false;
       this.dead = false;
       this.animT = 0;
       this.runT = 0;
-      this.wasGround = false;
     }
 
     get state() {
       if (this.dead) return 'dead';
       if (this.hurtT > 0) return 'hurt';
       if (this.move) return this.moveName;
-      if (this.crouching) return 'crouch';
+      if (this.blocking) return 'block';
+      if (this.crouching) return Math.abs(this.vx) > 10 ? 'crawl' : 'crouch';
       if (!this.onGround) return this.vy < 0 ? 'jump' : 'fall';
       return Math.abs(this.vx) > 20 ? 'run' : 'idle';
     }
@@ -107,13 +115,19 @@
       this.startMove(BASIC[idx]);
     }
 
-    hurt(dmg, fromX) {
-      if (this.dead || this.invuln > 0) return false;
+    // Returns 'hit', 'blocked' (a shield-side hit that did no damage), or null (ignored).
+    hurt(dmg, fromX, opts = {}) {
+      if (this.dead || this.invuln > 0) return null;
+      if (this.blocking && !opts.unblockable && BV.sign(fromX - this.cx) === this.facing) {
+        this.blockT = 0.18;
+        return 'blocked';
+      }
       this.hp -= dmg;
       this.invuln = 1.1;
       this.hurtT = 0.32;
       this.move = null;
       this.crouching = false;
+      this.blocking = false;
       this.vx = BV.sign(this.cx - fromX || 1) * 190;
       this.vy = -270;
       if (this.hp <= 0) {
@@ -121,7 +135,7 @@
         this.dead = true;
         this.vx = 0;
       }
-      return true;
+      return 'hit';
     }
 
     update(dt, game) {
@@ -131,6 +145,8 @@
       if (this.invuln > 0) this.invuln -= dt;
       if (this.hurtT > 0) this.hurtT -= dt;
       if (this.landT > 0) this.landT -= dt;
+      if (this.blockT > 0) this.blockT -= dt;
+      if (this.duckT > 0) this.duckT -= dt;
 
       if (this.dead) {
         this.vx = approach(this.vx, 0, 900 * dt);
@@ -161,9 +177,20 @@
         this.comboT -= dt;
       }
 
-      // Facing and crouch
+      // Block (LT / Shift): standing and still only.
+      this.blocking = input.held('block') && this.onGround && !this.move && this.hurtT <= 0;
+
+      // Quick duck on a tap of X; holding X crawls. Stick down or a crouch attack also keep us low.
+      if (input.pressed('crawl') && this.onGround) this.duckT = DUCK_TAP;
+      const crawlHeld = input.held('crawl');
+      const crouchAttack = this.move && this.moveName === 'crouch';
+      const wantCrouch = this.onGround && this.hurtT <= 0 && !this.blocking
+        && (crawlHeld || this.duckT > 0 || down || crouchAttack);
+      this.setCrouch(wantCrouch, level);
+      this.sneaking = this.crouching && this.onGround && Math.abs(this.vx) > 10;
+
+      // Facing
       if (dir && !this.move && this.hurtT <= 0) this.facing = dir;
-      this.setCrouch(down && this.onGround && !this.move && this.hurtT <= 0, level);
 
       // Horizontal control
       if (this.hurtT > 0) {
@@ -175,13 +202,17 @@
         } else if (this.onGround) {
           this.vx = approach(this.vx, 0, 2000 * dt);
         }
+      } else if (this.blocking) {
+        this.vx = approach(this.vx, dir * RUN_SPEED * BLOCK_SPEED, 2000 * dt);
+      } else if (this.crouching) {
+        this.vx = approach(this.vx, dir * CRAWL_SPEED, 1800 * dt);
       } else {
-        const target = this.crouching ? 0 : dir * RUN_SPEED;
+        const target = dir * RUN_SPEED;
         const accel = this.onGround ? (dir ? 2600 : 2200) : (dir ? 1400 : 600);
         this.vx = approach(this.vx, target, accel * dt);
       }
 
-      // Jump, with coyote time and a small input buffer
+      // Jump, with coyote time and a small input buffer. Down + jump drops through bone ledges.
       if (input.pressed('jump')) this.jumpBuf = JUMP_BUFFER;
       if (this.onGround) this.coyote = COYOTE;
       else this.coyote -= dt;
@@ -192,7 +223,7 @@
           this.vy = 60;
           this.jumpBuf = 0;
           this.onGround = false;
-        } else if (this.coyote > 0 && !this.crouching) {
+        } else if (this.coyote > 0 && !this.crouching && !this.blocking) {
           this.vy = JUMP_V;
           this.jumping = true;
           this.jumpBuf = 0;
@@ -203,7 +234,7 @@
       if (this.jumping && !input.held('jump') && this.vy < JUMP_CUT_V) this.vy = JUMP_CUT_V;
       if (this.vy >= 0) this.jumping = false;
 
-      if (input.pressed('attack') && this.hurtT <= 0) this.beginAttack(down, up);
+      if (input.pressed('attack') && this.hurtT <= 0 && !this.blocking) this.beginAttack(down, up);
 
       // Physics
       const wasGround = this.onGround;
@@ -214,9 +245,9 @@
       }
       if (this.onGround) this.runT += Math.abs(this.vx) * dt;
 
-      // Spikes
+      // Spikes ignore blocking.
       if (level.touchesSpikes(this.box) && this.invuln <= 0) {
-        this.hurt(1, this.cx - this.facing * 14);
+        game.onPlayerHurt(1, this.cx - this.facing * 14, { unblockable: true });
         game.fx.blood(this.cx, this.cy, 6, 0, 0.8);
       }
     }

@@ -103,7 +103,7 @@ function reachable(map, start) {
 }
 
 // Entity and decor glyphs stand on air, so the search treats them as air.
-const gridOf = (rowsArr) => rowsArr.map((r) => r.replace(/[PCjraosWKHQTXG]/g, '.').split(''));
+const gridOf = (rowsArr) => rowsArr.map((r) => r.replace(/[PCjraosWKHQVTXGM]/g, '.').split(''));
 const start = level.spawns.find((s) => s.ch === 'P');
 const W = level.w;
 const H = level.h;

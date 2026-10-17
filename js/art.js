@@ -102,7 +102,7 @@
     const f = pose.facing || 1;
     const t = pose.t || 0;
     const dead = st === 'dead';
-    const crouch = st === 'crouch';
+    const crouch = st === 'crouch' || st === 'crawl';
     const runPh = pose.runT * 0.075;
     const running = st === 'run';
     const flow = BV.clamp(-pose.vx / 220, -0.6, 0.6);
@@ -120,6 +120,7 @@
     if (st === 'down') lean = 0.25;
     if (crouch) lean = 0.32;
     if (st === 'hurt') lean = -0.22;
+    if (st === 'block') lean = -0.05;
 
     const hipY = crouch ? -17 : -26 + (running ? -Math.abs(Math.cos(runPh)) * 2.2 : 0);
     const hip = { x: 0, y: hipY };
@@ -145,7 +146,11 @@
       const col = side ? C.skinDark : C.skin;
       let fx, fy;
       if (dead) { fx = side ? 8 : -6; fy = -2; }
-      else if (crouch) { fx = side ? 9 : -9; fy = 0; }
+      else if (st === 'crawl') {
+        const q = runPh + off;
+        fx = -Math.cos(q) * 12;
+        fy = -Math.max(0, -Math.sin(q)) * 4;
+      } else if (crouch) { fx = side ? 9 : -9; fy = 0; }
       else if (st === 'jump') { fx = side ? -6 : 6; fy = -12; }
       else if (st === 'fall') { fx = side ? 8 : -8; fy = -4; }
       else if (st === 'hurt') { fx = side ? 6 : -6; fy = -2; }
@@ -289,7 +294,8 @@
       if (st === 'idle') angle = -0.65 + Math.sin(t * 2.2) * 0.04;
       else if (st === 'run') angle = -0.9 + Math.sin(runPh * 2) * 0.1;
       else if (st === 'jump' || st === 'fall') angle = -1.2;
-      else if (st === 'crouch') angle = -0.2;
+      else if (st === 'crouch' || st === 'crawl') angle = -0.2;
+      else if (st === 'block') angle = -0.08;
     }
     const gripX = sfx + Math.cos(angle) * 12;
     const gripY = sfy + Math.sin(angle) * 12;
@@ -687,11 +693,11 @@
   // ---------- tiles ----------
 
   const TILE_THEMES = {
-    dune: { top: '#e0ab66', hi: '#f7d293', body: '#a16f3f', dk: '#744a27', speck: '#c58b53', crack: '#4f3019' },
-    gorge: { top: '#8c5a3d', hi: '#b57d55', body: '#5d3524', dk: '#3c2015', speck: '#7b4733', crack: '#261009' },
-    cavern: { top: '#7f8492', hi: '#bcc0cc', body: '#4a4b5b', dk: '#2e2e3c', speck: '#6b6d7e', crack: '#17171f' },
-    ruin: { top: '#5d4b64', hi: '#8f7b9a', body: '#3a2c40', dk: '#211827', speck: '#50405a', crack: '#120c16' },
-    arena: { top: '#cb955c', hi: '#f2c58a', body: '#7b5335', dk: '#4c311d', speck: '#9d6f45', crack: '#2a180d' },
+    dune: { top: '#6f5438', hi: '#8a6a48', body: '#4a3626', dk: '#2a1d14', speck: '#5e4630', crack: '#140c08' },
+    gorge: { top: '#5a3a2c', hi: '#7a4d38', body: '#3b2219', dk: '#1e110c', speck: '#4d2c20', crack: '#0c0604' },
+    cavern: { top: '#4c4f5c', hi: '#737785', body: '#2c2d38', dk: '#14141b', speck: '#40424f', crack: '#08080c' },
+    ruin: { top: '#43354d', hi: '#5f4d68', body: '#241a2a', dk: '#0f0a13', speck: '#33283d', crack: '#060408' },
+    arena: { top: '#5e4330', hi: '#7d5b40', body: '#3a2519', dk: '#1a0f0a', speck: '#4a3023', crack: '#080403' },
   };
 
   let atlas = null;
@@ -927,10 +933,43 @@
       ctx.fill();
       return;
     }
+    if (d.ch === 'M') {
+      // A carved inscription slab with faint runes that pulse like a dying lamp.
+      shape(ctx, '#261c28', (c) => c.rect(sx + 4, sy + 3, 24, 28), 1.2);
+      ctx.strokeStyle = `rgba(110, 230, 210, ${0.3 + 0.25 * Math.sin(t * 2 + d.tx)})`;
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      for (let i = 0; i < 5; i++) {
+        const yy = sy + 8 + i * 4.5;
+        ctx.moveTo(sx + 8, yy);
+        ctx.lineTo(sx + 24 - (i % 2) * 6, yy);
+      }
+      ctx.stroke();
+      return;
+    }
     if (d.ch === 'W') return;
   }
 
   // ---------- pickups ----------
+
+  function drawVial(ctx, sx, sy, t) {
+    const bob = Math.sin(t * 2.6 + 0.7) * 2.5;
+    const cx = sx + 16;
+    const cy = sy + 15 + bob;
+    glow(ctx, cx, cy, 28, 'rgba(255,60,50,0.4)');
+    shape(ctx, 'rgba(150, 20, 25, 0.8)', (c) => {
+      c.moveTo(cx - 4, cy - 10);
+      c.lineTo(cx - 4, cy - 14);
+      c.lineTo(cx + 4, cy - 14);
+      c.lineTo(cx + 4, cy - 10);
+      c.quadraticCurveTo(cx + 9, cy - 4, cx + 6, cy + 4);
+      c.quadraticCurveTo(cx, cy + 9, cx - 6, cy + 4);
+      c.quadraticCurveTo(cx - 9, cy - 4, cx - 4, cy - 10);
+      c.closePath();
+    }, 1.2);
+    ctx.fillStyle = 'rgba(255, 230, 220, 0.5)';
+    ctx.fillRect(cx - 3, cy - 13, 1.5, 3);
+  }
 
   function drawKey(ctx, sx, sy, t) {
     const bob = Math.sin(t * 2.4) * 3;
@@ -997,11 +1036,11 @@
   // ---------- props (scenery standing on the sand) ----------
 
   const PROP_KINDS = {
-    dune: ['thorn', 'glow', 'glow', 'dead', 'rib', 'cactus'],
-    gorge: ['dead', 'thorn', 'dead'],
-    cavern: ['rib', 'thorn'],
-    ruin: ['pillar', 'glow', 'pillar'],
-    arena: ['rib', 'cactus'],
+    dune: ['thorn', 'glow', 'dead', 'rib', 'cactus', 'stake'],
+    gorge: ['dead', 'thorn', 'stake', 'dead', 'pole'],
+    cavern: ['rib', 'thorn', 'pole'],
+    ruin: ['pillar', 'glow', 'pillar', 'stake'],
+    arena: ['rib', 'cactus', 'pole', 'stake'],
   };
 
   function buildProps(level) {
@@ -1100,6 +1139,39 @@
         }
         break;
       }
+      case 'stake': {
+        // An impaled skull on a bleached stake, with a strip of hide tied below it.
+        shape(ctx, '#5a4632', (c) => c.rect(-2, -46, 4, 46), 1);
+        shape(ctx, '#d8ccb0', (c) => c.ellipse(0, -52, 7, 8, 0, 0, TAU), 1.2);
+        ctx.fillStyle = '#120808';
+        ctx.beginPath();
+        ctx.arc(-2.5, -53, 1.6, 0, TAU);
+        ctx.arc(2.5, -53, 1.6, 0, TAU);
+        ctx.fill();
+        ctx.strokeStyle = '#4a0c0c';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-3, -30); ctx.lineTo(4, -26); ctx.lineTo(-2, -20);
+        ctx.stroke();
+        break;
+      }
+      case 'pole': {
+        // A tall pole hung with a row of skulls, gnawed by the wind.
+        shape(ctx, '#3a2c20', (c) => c.rect(-2, -84, 4, 84), 1);
+        for (let i = 0; i < 3; i++) {
+          const sy = -70 + i * 22 + Math.sin(t * 1.5 + seed + i) * 1.5;
+          shape(ctx, '#cfc3a4', (c) => c.ellipse(0, sy, 5, 6, 0, 0, TAU), 1);
+          ctx.fillStyle = '#100606';
+          ctx.fillRect(-2.5, sy - 1, 1.5, 1.5);
+          ctx.fillRect(1, sy - 1, 1.5, 1.5);
+        }
+        ctx.strokeStyle = '#2a1b10';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, -84); ctx.lineTo(16, -84);
+        ctx.stroke();
+        break;
+      }
       case 'pillar': {
         shape(ctx, '#4b3a55', (c) => c.rect(-7, -54, 14, 54), 1.3);
         ctx.fillStyle = '#4b3a55';
@@ -1115,210 +1187,6 @@
   }
 
   // ---------- backdrop (sky, moons, layered silhouettes) ----------
-
-  let sky = null;
-  let layers = null;
-
-  function buildSky() {
-    const cv = makeCanvas();
-    cv.width = BV.VIEW_W;
-    cv.height = BV.VIEW_H;
-    const x = cv.getContext('2d');
-    const g = x.createLinearGradient(0, 0, 0, BV.VIEW_H);
-    g.addColorStop(0, '#04020b');
-    g.addColorStop(0.45, '#1a0a2e');
-    g.addColorStop(0.72, '#3d1738');
-    g.addColorStop(1, '#6b2a2c');
-    x.fillStyle = g;
-    x.fillRect(0, 0, BV.VIEW_W, BV.VIEW_H);
-
-    // Stars and a faint milky band
-    const rng = BV.seeded(77);
-    for (let i = 0; i < 260; i++) {
-      const sx = rng() * BV.VIEW_W;
-      const sy = Math.pow(rng(), 1.4) * 200;
-      x.fillStyle = `rgba(255,255,255,${0.2 + rng() * 0.8})`;
-      x.fillRect(sx, sy, rng() < 0.1 ? 2 : 1, rng() < 0.1 ? 2 : 1);
-    }
-    const band = x.createLinearGradient(0, 0, BV.VIEW_W, 120);
-    band.addColorStop(0, 'rgba(120,80,200,0)');
-    band.addColorStop(0.5, 'rgba(120,80,200,0.12)');
-    band.addColorStop(1, 'rgba(120,80,200,0)');
-    x.fillStyle = band;
-    x.beginPath();
-    x.moveTo(0, 60); x.lineTo(BV.VIEW_W, 0); x.lineTo(BV.VIEW_W, 40); x.lineTo(0, 110); x.closePath();
-    x.fill();
-
-    // Great low moon: pale lilac, cratered, with a halo
-    const mx = 470;
-    const my = 128;
-    glow(x, mx, my, 200, 'rgba(180,150,255,0.35)');
-    const mg = x.createRadialGradient(mx - 30, my - 30, 10, mx, my, 110);
-    mg.addColorStop(0, '#f1e9ff');
-    mg.addColorStop(0.6, '#a895d6');
-    mg.addColorStop(1, '#5a4585');
-    x.fillStyle = mg;
-    x.beginPath();
-    x.arc(mx, my, 110, 0, TAU);
-    x.fill();
-    x.fillStyle = 'rgba(70, 50, 110, 0.35)';
-    for (const [dx, dy, r] of [[-40, -20, 18], [30, 10, 26], [-10, 50, 14], [50, -40, 10], [-60, 30, 9]]) {
-      x.beginPath();
-      x.arc(mx + dx, my + dy, r, 0, TAU);
-      x.fill();
-    }
-
-    // Small emerald moon
-    glow(x, 110, 70, 60, 'rgba(120,255,200,0.3)');
-    x.fillStyle = '#7fe8c0';
-    x.beginPath();
-    x.arc(110, 70, 20, 0, TAU);
-    x.fill();
-    x.fillStyle = 'rgba(30,120,100,0.45)';
-    x.beginPath();
-    x.arc(104, 76, 6, 0, TAU);
-    x.fill();
-
-    // Ringed planet, tilted
-    x.save();
-    x.translate(262, 52);
-    x.rotate(-0.25);
-    x.strokeStyle = 'rgba(200,170,255,0.55)';
-    x.lineWidth = 5;
-    x.beginPath();
-    x.ellipse(0, 0, 46, 9, 0, 0, TAU);
-    x.stroke();
-    x.fillStyle = '#5b3f8f';
-    x.beginPath();
-    x.arc(0, 0, 18, Math.PI, TAU);
-    x.fill();
-    x.fillStyle = '#7b5bb3';
-    x.beginPath();
-    x.arc(0, 0, 18, 0, Math.PI);
-    x.fill();
-    x.restore();
-
-    // Blood-red moonlet
-    glow(x, 560, 46, 30, 'rgba(255,90,60,0.35)');
-    x.fillStyle = '#ff7b5a';
-    x.beginPath();
-    x.arc(560, 46, 7, 0, TAU);
-    x.fill();
-
-    return cv;
-  }
-
-  // A layer is a horizontally tileable strip of silhouettes drawn in one color family.
-  function buildLayer(seed, w, h, draw) {
-    const cv = makeCanvas();
-    cv.width = w;
-    cv.height = h;
-    draw(cv.getContext('2d'), BV.seeded(seed), w, h);
-    return cv;
-  }
-
-  function dunesFar(x, rng, w, h) {
-    x.fillStyle = '#1d1030';
-    x.beginPath();
-    x.moveTo(0, h);
-    for (let i = 0; i <= w; i += 8) {
-      const y = h - 110 - Math.sin(i * 0.01) * 40 - Math.sin(i * 0.037 + 1.3) * 22 - rng() * 4;
-      x.lineTo(i, y);
-    }
-    x.lineTo(w, h);
-    x.closePath();
-    x.fill();
-  }
-
-  function ruinsFar(x, rng, w, h) {
-    x.fillStyle = '#26123a';
-    for (let i = 0; i < 9; i++) {
-      const bx = rng() * w;
-      const bh = 60 + rng() * 80;
-      const bw = 16 + rng() * 22;
-      const by = h - 100;
-      x.fillRect(bx, by - bh, bw, bh + 100);
-      if (rng() < 0.5) {
-        x.beginPath();
-        x.arc(bx + bw / 2, by - bh, bw * 0.6, Math.PI, TAU);
-        x.fill();
-      }
-      if (rng() < 0.6) {
-        x.fillStyle = 'rgba(255,150,70,0.9)';
-        x.fillRect(bx + bw / 2 - 1, by - bh + 20, 2, 2);
-        x.fillStyle = '#26123a';
-      }
-    }
-  }
-
-  function bonesFar(x, rng, w, h) {
-    // A dead titan's ribcage, repeated across the horizon
-    x.strokeStyle = '#3d3146';
-    x.lineCap = 'round';
-    for (let i = 0; i < 2; i++) {
-      const bx = rng() * w * 0.6 + i * w * 0.5;
-      for (let r = 0; r < 4; r++) {
-        x.lineWidth = 9 - r;
-        x.beginPath();
-        x.arc(bx, h - 60 + r * 2, 110 - r * 12, Math.PI * 1.1, Math.PI * 1.9);
-        x.stroke();
-      }
-      x.beginPath();
-      x.moveTo(bx, h - 60);
-      x.lineTo(bx, h + 10);
-      x.lineWidth = 12;
-      x.stroke();
-    }
-  }
-
-  function dunesNear(x, rng, w, h) {
-    x.fillStyle = '#321a3a';
-    x.beginPath();
-    x.moveTo(0, h);
-    for (let i = 0; i <= w; i += 6) {
-      const y = h - 40 - Math.sin(i * 0.02 + 0.5) * 22 - Math.sin(i * 0.07) * 8;
-      x.lineTo(i, y);
-    }
-    x.lineTo(w, h);
-    x.closePath();
-    x.fill();
-    for (let i = 0; i < 14; i++) {
-      const px = rng() * w;
-      const py = h - 40 - Math.sin(px * 0.02 + 0.5) * 22 - 4;
-      glow(x, px, py, 14, 'rgba(127,243,230,0.35)');
-      x.fillStyle = '#7ff3e6';
-      x.fillRect(px, py - 3, 2, 2);
-    }
-  }
-
-  function buildBackdrop() {
-    sky = buildSky();
-    layers = [
-      { img: buildLayer(11, 1024, BV.VIEW_H, dunesFar), f: 0.12, y: 90 },
-      { img: buildLayer(22, 1024, BV.VIEW_H, ruinsFar), f: 0.22, y: 70 },
-      { img: buildLayer(33, 1024, BV.VIEW_H, bonesFar), f: 0.34, y: 60 },
-      { img: buildLayer(44, 1024, BV.VIEW_H, dunesNear), f: 0.5, y: 40 },
-    ];
-  }
-
-  function drawBackdrop(ctx, camX, camY, t) {
-    if (!sky) buildBackdrop();
-    ctx.drawImage(sky, 0, 0);
-    for (const L of layers) {
-      const ox = -((camX * L.f) % 1024);
-      const oy = (camY * L.f * 0.25) - L.y;
-      ctx.drawImage(L.img, ox, oy);
-      ctx.drawImage(L.img, ox + 1024, oy);
-    }
-  }
-
-  function drawVignette(ctx) {
-    const g = ctx.createRadialGradient(BV.VIEW_W / 2, BV.VIEW_H / 2, BV.VIEW_H * 0.35, BV.VIEW_W / 2, BV.VIEW_H / 2, BV.VIEW_W * 0.62);
-    g.addColorStop(0, 'rgba(0,0,0,0)');
-    g.addColorStop(1, 'rgba(0,0,0,0.65)');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, BV.VIEW_W, BV.VIEW_H);
-  }
 
   // The cloaked skeleton and the woman he carried off. Drawn as a silhouette in the sky.
   function drawApparition(ctx, x, y, alpha, t) {
@@ -1369,11 +1237,10 @@
     drawDecor,
     drawKey,
     drawTorc,
+    drawVial,
     drawHairpin,
     drawProp,
     buildProps,
-    drawBackdrop,
-    drawVignette,
     drawApparition,
     glow,
     shape,

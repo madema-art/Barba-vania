@@ -2,7 +2,7 @@
 (function () {
   const T = BV.TILE;
   const SOLID = { '#': 1, B: 1, D: 1 };
-  const ENTITY_GLYPHS = 'PCjraosWKHQ';
+  const ENTITY_GLYPHS = 'PCjraosWKHQV';
 
   BV.Level = class Level {
     constructor(def) {
@@ -23,7 +23,7 @@
           if (ENTITY_GLYPHS.includes(ch)) {
             this.spawns.push({ ch, tx, ty, id: `${tx},${ty}` });
             ch = '.';
-          } else if ('TXG'.includes(ch)) {
+          } else if ('TXGM'.includes(ch)) {
             this.decor.push({ ch, tx, ty });
             ch = '.';
           }

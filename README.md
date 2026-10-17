@@ -27,25 +27,37 @@ npx serve .
 
 ## Controls
 
-| Action | Keyboard | Gamepad |
-| --- | --- | --- |
-| Move | Arrows / WASD | D-pad / left stick |
-| Jump (hold for height) | Space / Z / C | A |
-| Sword combo (3 hits) | X / J | X |
-| Up-slash | Up + attack | Up + X |
-| Crouch slash | Down + attack | Down + X |
-| Drop through a bone ledge | Down + jump | Down + A |
-| Air slash | Attack in mid-air | X in mid-air |
-| Down-thrust (bounces off enemies) | Down + attack in mid-air | Down + X in mid-air |
-| Pause | P / Esc | Start |
+Gamepad uses Xbox names. Block is on **LT**: Xbox has no L1, so LT is the block trigger. Tell the project owner if you want it elsewhere.
 
-The gamepad mapping is written but has not been tested on hardware.
+| Action | Gamepad | Keyboard |
+| --- | --- | --- |
+| Move | Left stick / D-pad | Arrows / WASD |
+| Jump (hold for height) | A | Space / Z |
+| Quick sword attack (3-hit combo) | RT | J |
+| Up-slash | Stick up + RT | Up + J |
+| Crouch slash | Stick down + RT, or X + RT | Down + J, or C + J |
+| Air slash | RT in mid-air | J in mid-air |
+| Down-thrust (bounces off enemies) | Stick down + RT in mid-air | Down + J in mid-air |
+| Duck (tap) / crawl and sneak (hold) | X | C |
+| Block (blocks hits from the front) | LT (hold) | Shift (hold) |
+| Drink the equipped blood vial | B | F |
+| Ranged attack (no ranged weapon yet) | RB | G |
+| Quick select ring (weapons and potions) | LB (hold), stick or Digit keys to choose, release to equip | Q (hold), 1-9 to choose, release to equip |
+| Interact (rest at totems, read inscriptions) | Y | E |
+| Drop through a bone ledge | Stick down + A | Down + Space |
+| Pause | Start | P / Esc |
+| Start / continue (title and end screens) | Start | Enter |
+
+Crawling and sneaking make less noise: enemies notice you from much closer while you crawl. Right bumper and the Back button are not bound yet.
+
+The gamepad mapping is written but has not been tested on hardware. The browser test drives it through a fake pad.
 
 ## Level One
 
 - **Dunes.** The first jackals and the thorn patch. A one-way bone ledge teaches jumping. A raised slab hides the **Blood Torc** (+2 max health), and you strike it from below.
 - **Gorge.** A spiked pit, a spine-slinger on a perch, and a razorwing. A **high shelf with a grapple anchor** sits out of reach. That's foreshadowing for a later ability.
 - **Bone caverns.** Drop down the shaft, climb the bone stairs, and fight a carrion brute, which slams the sand and sends shockwaves along the ground.
+- **Dunes and caves.** Blood vials to drink with B, and carved inscriptions to read with Y.
 - **Ruined shrine.** An ember priest blinks and hurls homing fire, and guards the **star-sigil** on the altar.
 - **Sealed gate.** The sigil opens the gate into the boss arena. Once you're inside, the gate closes behind you.
 - **Sandmaw Wyrm.** A burrowing sand-worm that can only be hurt while its head is up. Leap and strike it while it breaches, and dodge the acid it spits.
@@ -66,7 +78,10 @@ js/entities.js      jackal, razorwing, spine-slinger, ember priest, carrion brut
 js/boss.js          Sandmaw Wyrm
 js/art.js           procedural sprites, tiles, sky and parallax backdrop, props
 js/fx.js            particles, gore decals, shake, hit-stop, captions
-js/game.js          state machine, world loading, checkpoints, camera, HUD
+js/lighting.js      darkness veil: every light cuts a hole in it
+js/atmosphere.js    dark sky, veiled moons, cloud banks, lightning, grain and vignette
+js/hud.js           health, loadout, quick-select ring, prompts, toasts, overlays
+js/game.js          state machine, world loading, checkpoints, interaction, camera, lighting
 tests/              level structure and reachability checks, browser playthrough
 ```
 

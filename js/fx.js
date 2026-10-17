@@ -85,11 +85,13 @@
       if (decals.length > 80) decals.shift();
     },
 
+    // The newest caption replaces the one showing, so an interaction is never hidden behind old text.
     caption(text, sec = 4) {
+      captions.length = 0;
       captions.push({ text, t: 0, max: sec });
-      if (captions.length > 2) captions.shift();
     },
     clearCaptions() { captions.length = 0; },
+    currentCaption() { return captions.length ? captions[0].text : ''; },
 
     update(dt) {
       hitstop = Math.max(0, hitstop - dt);
@@ -180,7 +182,7 @@
       ctx.font = 'italic 15px Georgia, "Times New Roman", serif';
       const w = ctx.measureText(c.text).width + 36;
       const x = (BV.VIEW_W - w) / 2;
-      const y = BV.VIEW_H - 58;
+      const y = 70;
       ctx.fillStyle = 'rgba(8, 4, 12, 0.78)';
       ctx.fillRect(x, y, w, 32);
       ctx.strokeStyle = 'rgba(210, 160, 80, 0.7)';

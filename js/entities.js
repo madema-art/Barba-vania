@@ -88,7 +88,8 @@
         this.facing = this.dir;
         if (this.hitWall || !this.groundAhead(level, this.dir)) this.dir *= -1;
         const dx = p.cx - this.cx;
-        if (!p.dead && Math.abs(dx) < 250 && Math.abs(p.cy - this.cy) < 90) {
+        const noticeRange = p.sneaking ? 110 : 250;
+        if (!p.dead && Math.abs(dx) < noticeRange && Math.abs(p.cy - this.cy) < 90) {
           this.state = 'windup';
           this.stateT = 0.34;
           this.facing = BV.sign(dx) || this.facing;
@@ -222,7 +223,7 @@
       this.facing = BV.sign(p.cx - this.cx) || this.facing;
       const dx = p.cx - this.cx;
       const dy = p.cy - this.cy;
-      const inRange = Math.abs(dx) < 460 && Math.abs(dy) < 260 && !p.dead;
+      const inRange = Math.abs(dx) < (p.sneaking ? 260 : 460) && Math.abs(dy) < 260 && !p.dead;
       if (this.state === 'idle' && inRange && this.cool <= 0) {
         this.state = 'draw';
         this.stateT = 0.5;
@@ -265,7 +266,7 @@
       this.cool -= dt;
       this.blinkCool -= dt;
       const dx = p.cx - this.cx;
-      const near = Math.abs(dx) < 300 && Math.abs(p.cy - this.cy) < 140 && !p.dead;
+      const near = Math.abs(dx) < (p.sneaking ? 150 : 300) && Math.abs(p.cy - this.cy) < 140 && !p.dead;
 
       if (this.state === 'cast') {
         this.stateT -= dt;
@@ -419,7 +420,7 @@
         return;
       }
       if (!p.dead && BV.overlap(this.box, p.box)) {
-        if (p.hurt(this.dmg, cx)) game.fx.blood(p.cx, p.cy, 6, BV.sign(p.cx - cx), 0.8);
+        game.onPlayerHurt(this.dmg, cx);
         this.dead = true;
       }
     }

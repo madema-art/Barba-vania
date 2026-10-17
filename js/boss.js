@@ -176,7 +176,7 @@
     damagePlayerIfOverlapping(game) {
       const p = game.player;
       if (!p.dead && this.exposed && BV.overlap(this.headBox, p.box)) {
-        p.hurt(2, this.headX);
+        game.onPlayerHurt(2, this.headX);
       }
     }
 
